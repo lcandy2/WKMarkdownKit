@@ -661,6 +661,25 @@ function smootherSetTarget(itemId, text) {
     commitStreaming(itemId, text, previous);
 }
 
+/// A segment rebuild (fingerprint change: rows appended, status
+/// flipped) replaces every streaming body with an EMPTY shell.
+/// The dedupe in smootherSetTarget would skip the refill — the
+/// text has not changed — leaving completed-but-still-streaming
+/// rows permanently blank. Force the commit; the reveal state
+/// keeps its cursor, so the fog resumes in place.
+function smootherRefill(itemId, text) {
+    let s = smoothers.get(itemId);
+    if (!s) {
+        s = { lastRebuild: 0, pending: null, text: "" };
+        smoothers.set(itemId, s);
+    }
+    s.lastRebuild = performance.now();
+    s.pending = null;
+    const previous = s.text;
+    s.text = text;
+    commitStreaming(itemId, text, previous);
+}
+
 function commitStreaming(itemId, text, previous) {
     const body = document.querySelector(
         '[data-item="' + CSS.escape(itemId)
@@ -931,16 +950,22 @@ window.cog = {
                     column.prepend(el);
                 }
             }
+            let rebuilt = false;
             if (el.dataset.fp !== fingerprint) {
                 el.dataset.fp = fingerprint;
                 el.innerHTML = renderSegment(seg);
                 upgradeMarkdownDOM(el);
+                rebuilt = true;
             }
             for (const row of [
                 ...seg.process, ...seg.conclusion,
             ]) {
                 if (row.streaming) {
-                    smootherSetTarget(row.id, row.text);
+                    if (rebuilt) {
+                        smootherRefill(row.id, row.text);
+                    } else {
+                        smootherSetTarget(row.id, row.text);
+                    }
                 } else if (smoothers.has(row.id)) {
                     dropStreamingState(row.id);
                 }
