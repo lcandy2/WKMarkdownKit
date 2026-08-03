@@ -1,0 +1,109 @@
+/*
+ * WKMarkdownKit preflight — a purpose-built UA-style reset for the
+ * WKWebView transcript renderer. Loaded FIRST.
+ *
+ * This is not a generic reset: every rule here neutralizes a UA
+ * behavior that has ALREADY bitten this renderer (or is in the same
+ * family), mostly around selection hygiene and font truthfulness.
+ * Informed by Tailwind's preflight (MIT), rewritten for this engine.
+ */
+
+/* Zero geometry everywhere: UA margins/paddings never collapse in
+   our all-flex tree, so any that survive become visible "mystery
+   gaps"; borders default to 0 width so a `border-color` alone never
+   paints. */
+*,
+::before,
+::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Headings carry NO UA scale/weight — the theme assigns them all
+   (the panel draws every level the same way; UA h1 en-larging would
+   silently diverge). */
+h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+/* THE bug this file exists for: the UA's element-level
+   `code { font-family: monospace }` BEATS inheritance, so block code
+   silently rendered the default fixed font (Courier) no matter what
+   the cascade said. Fonts always inherit; the theme opts in
+   explicitly. */
+code, kbd, samp, pre {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+a {
+    color: inherit;
+    text-decoration: inherit;
+}
+
+b, strong {
+    font-weight: bolder;
+}
+
+small {
+    font-size: inherit;
+}
+
+/* UA sub/sup shift line boxes (selection-height wobble on lines
+   containing them) — Tailwind's zero-line-height treatment. */
+sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+}
+sub { bottom: -0.25em; }
+sup { top: -0.5em; }
+
+/* Tables: no UA spacing/borders; header cells inherit alignment and
+   weight (the theme sets its own quiet caps header). */
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    text-indent: 0;
+}
+th {
+    text-align: inherit;
+    font-weight: inherit;
+}
+
+/* Lists are fully theme-owned (generated-content markers — real
+   ::marker boxes paint selection). */
+ol, ul, menu {
+    list-style: none;
+}
+
+/* Replaced content: block by default, never overflowing the column. */
+img, svg, video, canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* Form controls (plan card, chips) inherit typography; their looks
+   are theme-assigned. */
+button, input, select, textarea {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+}
+button {
+    cursor: pointer;
+}
+
+hr {
+    height: 0;
+    color: inherit;
+}

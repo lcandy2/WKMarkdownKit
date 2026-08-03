@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="wkmarkdownkit-preflight.css">
+<link rel="stylesheet" href="wkmarkdownkit-hljs.css">
+<link rel="stylesheet" href="wkmarkdownkit.css">
+<script src="vendor/marked.min.js"></script>
+<script src="vendor/highlight.min.js"></script>
+<script type="module">
+    // remend — streaming-markdown repair (closes half-open fences,
+    // emphasis and links mid-stream).
+    import * as M from "./vendor/remend.esm.js";
+    window.remend = M.default ?? M.remend ?? null;
+</script>
+</head>
+<body>
+<div id="root">
+    <div class="scroll" id="scroll">
+        <div id="column"></div>
+    </div>
+</div>
+<script src="wkmarkdownkit.js"></script>
+</body>
+</html>

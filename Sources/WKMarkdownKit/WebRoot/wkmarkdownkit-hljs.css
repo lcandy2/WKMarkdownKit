@@ -1,0 +1,54 @@
+/*
+ * WKMarkdownKit highlight theme.
+ *
+ * Class assignments follow highlight.js's "xcode" theme (BSD-3-Clause,
+ * (c) highlight.js contributors); the color VALUES are the dynamic
+ * light/dark pairs from the native renderer's hand-tuned mapping
+ * (CodeHighlighter.colorMapping) so both renderers colorize
+ * identically in both appearances.
+ */
+
+.hljs {
+    background: transparent;
+    color: var(--color-text);
+}
+.hljs-subst { color: inherit; }
+
+.hljs-comment, .hljs-quote { color: #007400; }
+.hljs-attribute, .hljs-keyword, .hljs-literal, .hljs-name,
+.hljs-selector-tag, .hljs-tag { color: #aa0d91; }
+.hljs-template-variable, .hljs-variable { color: #3f6e74; }
+.hljs-code, .hljs-meta .hljs-string, .hljs-string { color: #c41a16; }
+.hljs-link, .hljs-regexp { color: #0e0eff; }
+/* NOTE .hljs-title is deliberately absent everywhere: the native
+   renderer (Highlightr) cannot resolve v11 compound scopes, so
+   declaration names render in the default text color — parity. */
+.hljs-bullet, .hljs-number, .hljs-symbol { color: #1c00cf; }
+.hljs-meta, .hljs-section { color: #643820; }
+.hljs-built_in, .hljs-params, .hljs-type { color: #5c2699; }
+.hljs-attr { color: #836c28; }
+.hljs-selector-class, .hljs-selector-id { color: #9b703f; }
+.hljs-formula { background-color: #eeeeee; font-style: italic; }
+.hljs-addition { background-color: #baeeba; }
+.hljs-deletion { background-color: #ffc8bd; }
+.hljs-doctag, .hljs-strong { font-weight: 700; }
+.hljs-emphasis { font-style: italic; }
+
+@media (prefers-color-scheme: dark) {
+    .hljs-comment, .hljs-quote { color: #72b16d; }
+    .hljs-attribute, .hljs-keyword, .hljs-literal, .hljs-name,
+    .hljs-selector-tag, .hljs-tag { color: #fc5fa5; }
+    .hljs-template-variable, .hljs-variable { color: #6eb6be; }
+    .hljs-code, .hljs-meta .hljs-string, .hljs-string { color: #fc6a5d; }
+    .hljs-link, .hljs-regexp { color: #627eff; }
+    .hljs-bullet, .hljs-number, .hljs-symbol {
+        color: #8ea0fc;
+    }
+    .hljs-meta, .hljs-section { color: #c39170; }
+    .hljs-built_in, .hljs-params, .hljs-type { color: #a179e2; }
+    .hljs-attr { color: #d5bf6d; }
+    .hljs-selector-class, .hljs-selector-id { color: #d8b484; }
+    .hljs-formula { background-color: #2c2c2e; }
+    .hljs-addition { background-color: #2e4a2e; }
+    .hljs-deletion { background-color: #5a2a24; }
+}

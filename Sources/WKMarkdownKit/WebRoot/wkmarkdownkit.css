@@ -1,0 +1,733 @@
+/* ==== Native panel reproduction. System palette
+   approximations; geometry from CogLayout. ==== */
+:root {
+    color-scheme: light dark;
+    /* Body is the FLOOR font size — nothing renders below
+       var(--font-body). */
+    --font-body: 14px;
+    /* The sanctioned exceptions to the floor: expanded tool-call
+       detail and code BLOCKS read one step smaller (inline code
+       stays at body — it sits in the text's line rhythm). */
+    --font-tool-detail: 13px;
+    --font-code: 13px;
+    --font-sans: -apple-system, BlinkMacSystemFont,
+        system-ui, sans-serif;
+    /* NO ui-monospace: in WKWebView it resolves to a non-SF fixed
+       font and wins the cascade (probe-measured 139 vs SF Mono 116).
+       The view also sets the default fixed-pitch family to SF Mono,
+       so the generic keyword is the working fallback. */
+    --font-mono: "SF Mono", Menlo, monospace;
+    --color-text: #1d1d1f;
+    --color-text-secondary: rgba(60, 60, 67, 0.6);
+    --color-text-tertiary: rgba(60, 60, 67, 0.33);
+    --color-fill-quaternary: rgba(120, 120, 128, 0.12);
+    --color-fill-quinary: rgba(120, 120, 128, 0.08);
+    --color-fill-chip: rgba(120, 120, 128, 0.05);
+    --color-fill-mat: rgba(120, 120, 128, 0.12);
+    --color-surface: #ffffff;
+    --color-material: rgba(246, 246, 246, 0.78);
+    --color-accent: #007aff;
+    --color-destructive: #d70015;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-text: #e8e8ed;
+        --color-text-secondary: rgba(235, 235, 245, 0.6);
+    --color-text-tertiary: rgba(235, 235, 245, 0.33);
+        --color-fill-quaternary: rgba(118, 118, 128, 0.24);
+        --color-fill-quinary: rgba(118, 118, 128, 0.16);
+        --color-fill-chip: rgba(118, 118, 128, 0.1);
+        --color-fill-mat: rgba(118, 118, 128, 0.24);
+        --color-surface: #1e1e20;
+        --color-material: rgba(40, 40, 42, 0.78);
+        --color-accent: #0a84ff;
+        --color-destructive: #ff453a;
+    }
+    .hljs { color: var(--color-text); background: transparent; }
+}
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: transparent !important;
+    /* var(--font-body) = native bodyPointSize. Longhands: the
+       font shorthand + var() + quoted family dies in WebKit. */
+    font-family: var(--font-sans);
+    font-size: var(--font-body);
+    line-height: 1.5;
+    color: var(--color-text);
+}
+body { -webkit-user-select: text; }
+#root { width: 100%; height: 100%; display: flex; }
+.scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    padding: 16px;
+    /* The view underlaps the titlebar (full-size content
+       window); the native ScrollView insets automatically,
+       we mirror it — LabWebView.layout feeds the inset. */
+    padding-top: calc(16px + var(--safe-top, 0px));
+}
+/* Native metric: the 752pt cap INCLUDES the 16pt
+   horizontal padding (padding first, then
+   frame(maxWidth: 752)) — the text column is 720. Our
+   padding sits on .scroll, so the column caps at 720. */
+#column {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+}
+/* Same rule as native: the sentinel shows an honest
+   caption while it pages — text, no spinner. */
+#older-sentinel {
+    height: 24px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-body);
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+    -webkit-user-select: none; user-select: none;
+}
+/* User bubble: right-aligned, quaternary fill, radius 16,
+   max width 564 (752 × .75), 48pt clear on the left. */
+.userrow {
+    display: flex;
+    justify-content: flex-end;
+    padding-left: 48px;
+}
+.userbubble {
+    max-width: 564px;
+    background: var(--color-fill-quaternary);
+    border-radius: 16px;
+    padding: 8px 12px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+/* Turn fold: "Worked for Xs ›", subheadline secondary. */
+.fold {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-body);
+    cursor: pointer;
+}
+.fold .chev {
+    /* A fixed centered box so rotation pivots the GLYPH's center —
+       the raw inline box has side bearings that made the spin
+       wobble. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    transform-origin: 50% 50%;
+    transition: transform 0.15s ease;
+    font-size: inherit;
+    font-weight: 600;
+}
+.fold.expanded .chev { transform: rotate(90deg); }
+.process {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+}
+/* Fold expansion animates through the same grid-rows trick as the
+   tool wells. */
+.process-shell {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.18s ease, opacity 0.18s ease;
+}
+.process-shell.expanded {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+.process-clip { overflow: hidden; min-height: 0; }
+.seg > .process:first-child { margin-top: 0; }
+/* Bare tool rows: one-line hints; only failures shout. */
+.toolrow {
+    color: var(--color-text-secondary);
+    font-size: var(--font-body);
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+.toolrow.failed { color: var(--color-destructive); }
+/* Leading tool icon, native metrics: 14pt slot, secondary. */
+.toolrow .ticon {
+    width: 12px;
+    height: 12px;
+    flex: none;
+    align-self: center;
+}
+.toolrow .tfail { color: var(--color-destructive); }
+/* Bridge discipline: non-content chrome is select-none AND
+   paints no selection sweep (user-select alone still lets
+   WebKit wash its line boxes). Content stays selectable —
+   tool TITLES, fold LABELS, and expanded tool bodies are
+   text; only the row chrome (icon, ✕/− marks, chevron)
+   stays out of the sweep. */
+.toolrow, .fold .chev, .working,
+#older-sentinel, .chip, .chip *,
+.plancard .caption, .plancard .actions, .pbtn,
+.md input[type="checkbox"], .md hr {
+    -webkit-user-select: none; user-select: none;
+}
+/* `user-select: auto` resolves to the parent's value, so the
+   row's `none` covers icon/marks; the title opts back in. */
+.toolrow .ttitle, .fold .fold-label {
+    -webkit-user-select: text; user-select: text;
+    cursor: text;
+}
+.toolrow::selection, .toolrow .ticon::selection,
+.toolrow .tfail::selection, .toolrow .tcancel::selection,
+.fold .chev::selection, .working::selection,
+#older-sentinel::selection,
+.chip::selection, .chip *::selection,
+.plancard .caption::selection, .pbtn::selection,
+.md hr::selection {
+    background: transparent;
+    color: inherit;
+}
+/* List markers must never paint selection — real ::marker
+   boxes do, generated-content markers don't. */
+.md ul, .md ol { list-style: none; }
+.md li { position: relative; }
+.md ul > li::before {
+    content: "•";
+    position: absolute;
+    left: -16px;
+    color: var(--color-text-tertiary);
+}
+.md ol { counter-reset: mditem; }
+.md ol > li { counter-increment: mditem; }
+.md ol > li::before {
+    /* Reference style: bare gray ordinal, no dot. */
+    content: counter(mditem);
+    position: absolute;
+    left: -24px;
+    width: 18px;
+    text-align: right;
+    color: var(--color-text-tertiary);
+}
+.md li:has(> input[type="checkbox"])::before {
+    content: none;
+}
+/* Only TEXT highlights inside code and tables: every block
+   between .md and the glyphs is flex (no gap painting),
+   and pre hugs its code so line highlights end at the
+   characters. Table cells are select-none shells; the
+   injected .cellsel spans carry the selectable text. */
+.md, .md blockquote, .codewrap, .codecard, .codesurface,
+.blk, .md li {
+    display: flex;
+    flex-direction: column;
+    /* li included: with a nested list inside, a block-flow li
+       gap-paints a blue strip between its text and the sublist
+       during selection. Contiguous inline runs coalesce into one
+       anonymous flex item, so single-line items are unchanged. */
+}
+/* Bridge's real trick is structural: React emits no
+   inter-element whitespace and every container is flex —
+   flex has NO selection-gap painting. Mirror it: pre,
+   code, and lists all go flex-column. */
+.codesurface pre {
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+}
+.codesurface pre code {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+.md ul, .md ol {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+/* Each code line is its own block hugging its text, so the
+   mid-selection extension stops at THAT line's characters,
+   not the longest line's. */
+.cl {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+}
+.md td, .md th {
+    -webkit-user-select: none; user-select: none;
+}
+.md td::selection, .md th::selection {
+    background: transparent;
+}
+/* BLOCK (not inline-block!) + fit-content: hugging with no
+   baseline — an inline-block rides the line box's
+   baseline, and the descender strip below it still paints
+   selection: the thin underline artifact. Bridge's bubble
+   content is a plain block for the same reason. */
+.cellsel {
+    -webkit-user-select: text; user-select: text;
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+}
+.ubtext {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+}
+/* Tool expansion (native parity): the bare row toggles a
+   quinary well with the tool's output — selectable text. */
+.toolwrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.toolrow { cursor: pointer; }
+/* Expand/collapse animates through the grid-rows
+   trick: the wrap interpolates 0fr -> 1fr while the body
+   fades — the only animatable path for auto height. */
+.toolbody-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.18s ease,
+        opacity 0.18s ease;
+}
+.toolwrap.expanded .toolbody-wrap {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+.toolbody {
+    min-height: 0;
+    overflow: hidden;
+    background: var(--color-fill-quinary);
+    border-radius: 8px;
+    padding: 0 8px;
+    font-family: var(--font-mono);
+    font-size: var(--font-tool-detail);
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    transition: padding 0.18s ease;
+}
+.toolwrap.expanded .toolbody { padding: 8px; }
+.toolbody {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.tool-label {
+    font-family: var(--font-sans);
+    color: var(--color-text-secondary);
+}
+.tool-invocation .tprompt { color: var(--color-text-tertiary); }
+.tool-truncated {
+    font-family: var(--font-sans);
+    color: var(--color-text-secondary);
+}
+.toolrow .tcancel { color: var(--color-text-tertiary); }
+/* WebKit paints "selection gaps": inside a BLOCK-flow
+   container, a cross-block selection fills the space
+   between selected children with full-width highlight —
+   no ::selection rule on the chrome can stop it, it's the
+   container painting. FLEX containers have no gap-painting
+   machinery at all (that's why Bridge's flex-col message
+   stream stays clean, and why our flex .process never
+   washed). So every multi-child container goes flex. */
+.seg {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+.seg > .fold { align-self: flex-start; }
+/* WebKit extends a mid-selection line's highlight to its
+   containing block's right edge. Shrink every text block
+   to its content, and the "edge" IS the text — highlights
+   hug glyphs, native-style. (Explicit width beats flex
+   stretch.) */
+.md p, .md h1, .md h2, .md h3, .md h4, .md h5, .md h6,
+.md li, .md blockquote {
+    width: fit-content;
+    max-width: 100%;
+}
+#column > *, .seg > *, .process > * {
+    position: relative;
+}
+.thought { color: var(--color-text-secondary); }
+/* Shimmer — tw-shimmer (assistant-ui) ported verbatim from the
+   package source (v0.4.12): 200px/s sweep, spread 4ch+80px, 15deg
+   tilt, 17-stop sine falloff, LIGHT mode gleam = currentColor at
+   20% alpha over the solid label (dark mode lightens instead).
+   Repeat delay pinned to 1500ms (user spec). */
+.shimmer,
+.toolrow.running > .ttitle {
+    --shimmer-track-height: 200px;
+    --shimmer-angle: 15deg;
+    --_speed: 200;
+    --_spread: calc(4ch + 80px);
+    --_bg: currentColor;
+    --_fg: oklch(from currentColor l c h / calc(alpha * 0.2));
+    --_gradient-width: calc(
+        var(--_spread) + var(--shimmer-track-height)
+            * tan(var(--shimmer-angle))
+    );
+    --_active-distance: calc(200px + var(--_gradient-width));
+    --_duration: calc(
+        var(--_active-distance) / var(--_speed) / 1px * 1000
+    );
+    --_repeat-delay: 1500;
+    --_repeat-delay-px: calc(
+        var(--_repeat-delay) * var(--_active-distance)
+            / var(--_duration)
+    );
+    --_bg-width: calc(
+        100% + 100% + var(--_gradient-width) + var(--_repeat-delay-px)
+    );
+    --_position: calc(
+        (100% - var(--_gradient-width) - var(--_repeat-delay-px)) / 2
+            + var(--_gradient-width) / 2 + var(--_repeat-delay-px)
+    );
+    --_mix-96: color-mix(in oklch, var(--_fg), var(--_bg) 96%);
+    --_mix-83: color-mix(in oklch, var(--_fg), var(--_bg) 83%);
+    --_mix-67: color-mix(in oklch, var(--_fg), var(--_bg) 67%);
+    --_mix-50: color-mix(in oklch, var(--_fg), var(--_bg) 50%);
+    --_mix-33: color-mix(in oklch, var(--_fg), var(--_bg) 33%);
+    --_mix-17: color-mix(in oklch, var(--_fg), var(--_bg) 17%);
+    --_mix-4: color-mix(in oklch, var(--_fg), var(--_bg) 4%);
+    background: linear-gradient(
+            calc(90deg + var(--shimmer-angle)),
+            var(--_bg) calc(var(--_position) - var(--_spread) * 0.5),
+            var(--_mix-96) calc(var(--_position) - var(--_spread) * 0.44),
+            var(--_mix-83) calc(var(--_position) - var(--_spread) * 0.37),
+            var(--_mix-67) calc(var(--_position) - var(--_spread) * 0.31),
+            var(--_mix-50) calc(var(--_position) - var(--_spread) * 0.25),
+            var(--_mix-33) calc(var(--_position) - var(--_spread) * 0.19),
+            var(--_mix-17) calc(var(--_position) - var(--_spread) * 0.12),
+            var(--_mix-4) calc(var(--_position) - var(--_spread) * 0.06),
+            var(--_fg) var(--_position),
+            var(--_mix-4) calc(var(--_position) + var(--_spread) * 0.06),
+            var(--_mix-17) calc(var(--_position) + var(--_spread) * 0.12),
+            var(--_mix-33) calc(var(--_position) + var(--_spread) * 0.19),
+            var(--_mix-50) calc(var(--_position) + var(--_spread) * 0.25),
+            var(--_mix-67) calc(var(--_position) + var(--_spread) * 0.31),
+            var(--_mix-83) calc(var(--_position) + var(--_spread) * 0.37),
+            var(--_mix-96) calc(var(--_position) + var(--_spread) * 0.44),
+            var(--_bg) calc(var(--_position) + var(--_spread) * 0.5)
+        )
+        0 0 / var(--_bg-width) 100% no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: tw-shimmer 1s linear 0s infinite backwards;
+    animation-duration: calc(
+        (var(--_duration) + var(--_repeat-delay)) * 1ms
+    );
+}
+@media (prefers-color-scheme: dark) {
+    .shimmer,
+    .toolrow.running > .ttitle {
+        --_fg: oklch(
+            from currentColor max(0.8, calc(l + 0.4)) c h
+                / calc(alpha + 0.4)
+        );
+    }
+}
+@keyframes tw-shimmer {
+    from { background-position: 100% 0; }
+}
+.working {
+    color: var(--color-text-secondary);
+    font-size: var(--font-body);
+}
+/* Markdown body — native MarkdownView scale. */
+.md p { margin: 0 0 10px; }
+.md p:last-child { margin-bottom: 0; }
+/* Native truth: the panel draws EVERY heading level with
+   fonts.title = body + 2, semibold. */
+.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
+    margin: 14px 0 8px;
+    font-weight: 600;
+    line-height: 1.3;
+    font-size: 16px;
+}
+.md ul, .md ol { margin: 0 0 10px; padding-left: 22px; }
+/* Spacing by flex GAP, not margins: margins never collapse in the
+   flex tree, so every list-level close stacked one more 6px (the
+   uneven gaps). gap lives only BETWEEN siblings — closing any depth
+   adds nothing. */
+.md li { margin: 0; gap: 12px; }
+.md li > ul, .md li > ol { margin: 0; }
+.li-run { width: fit-content; max-width: 100%; }
+.md blockquote {
+    border-left: 3px solid var(--color-fill-quaternary);
+    padding-left: 10px;
+    color: var(--color-text-secondary);
+    margin: 0 0 10px;
+}
+.md hr {
+    border: none;
+    border-top: 1px solid var(--color-fill-quaternary);
+    margin: 14px 0;
+}
+.md a { color: var(--color-accent); text-decoration: none; }
+.md img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 6px 0;
+}
+.md :not(pre) > code {
+    font-family: var(--font-mono);
+    font-size: var(--font-body);
+    /* Native scale (A): codeBackground at 5% alpha — the
+       quaternary chip was 2.4× louder than the native
+       panel's. */
+    background: var(--color-fill-chip);
+    border-radius: 4px;
+    padding: 1px 4px;
+}
+/* Tables render as GRID, not display:table — the table
+   renderer paints whole-cell selection at the cell level,
+   unreachable by ::selection. As grid items the cells are
+   plain blocks and every hugging rule applies. Column
+   tracks are set per-table by upgradeMarkdownDOM. */
+.md table {
+    display: grid;
+    font-size: var(--font-body);
+    /* ONE geometry for every tinted block (user decision A,
+       2026-08-03): the colored layer bleeds 6px past the column —
+       exactly the code card's mat — so cell text sits at +6, the
+       same line code text sits on. */
+    margin: 0 -6px 10px;
+    max-width: calc(100% + 12px);
+    /* Wide tables must never blow past the column — they
+       scroll inside their own box instead. */
+    overflow-x: auto;
+}
+.md thead, .md tbody, .md tr { display: contents; }
+.md th, .md td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: none;
+}
+.md th {
+    /* Reference style: quiet all-caps letterspaced header. */
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+}
+/* Rounded zebra stripes (grid rows are display:contents, so the
+   cells carry the band). */
+.md tbody tr:nth-child(odd) > td {
+    background: var(--color-fill-quinary);
+}
+.md tbody tr:nth-child(odd) > td:first-child {
+    border-radius: 8px 0 0 8px;
+}
+.md tbody tr:nth-child(odd) > td:last-child {
+    border-radius: 0 8px 8px 0;
+}
+/* Two-layer codeblock, native metrics: outer mat
+   (tertiary fill, radius 16, pad 6) extends 6px past the
+   column so the inner surface (system background, radius
+   10, pad 6) aligns with body text. */
+.codewrap { position: relative; margin: 0 -6px 10px; }
+.codecard {
+    background: var(--color-fill-mat);
+    border-radius: 16px;
+    padding: 6px;
+}
+.codesurface {
+    background: var(--color-surface);
+    border-radius: 10px;
+    padding: 6px;
+    overflow-x: auto;
+}
+.codesurface pre {
+    font-family: var(--font-mono);
+    font-size: var(--font-code);
+    line-height: 1.45;
+}
+.codesurface pre code {
+    background: transparent !important;
+    padding: 0 !important;
+    font-size: inherit;
+    /* Explicit: the UA's `code { font-family: monospace }` beats
+       inheritance, so block code never saw our stack otherwise. */
+    font-family: var(--font-mono);
+}
+/* Hover chip: [language icon+name | copy] on blur
+   material, top-right INSIDE the inner surface. */
+.chip {
+    position: absolute;
+    top: 12px; right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: var(--color-material);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-size: var(--font-body);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    -webkit-user-select: none; user-select: none;
+}
+.codewrap:hover .chip { opacity: 1; }
+.chip .lang { text-transform: capitalize; }
+.chip button {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    width: 14px; height: 14px;
+}
+.chip svg { width: 14px; height: 14px; stroke: currentColor; }
+.chip .check path {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+}
+.chip.copied .check path {
+    animation: draw 0.35s ease-out forwards;
+}
+@keyframes draw { to { stroke-dashoffset: 0; } }
+/* Native-model fog, two layers like Litext: the span's own
+   glyph is transparent (reserves layout); inside the
+   cursor window (.fog-live) a blurred GHOST pseudo
+   materializes ahead (--g) and the SHARP pseudo fades in
+   over it (--s), both inheriting the glyph's color —
+   syntax tokens included. Settled = plain inherited glyph,
+   pseudos gone. */
+.fog {
+    /* Fill goes transparent; `color` (and so currentColor)
+       keeps the real value for the layers. */
+    -webkit-text-fill-color: transparent;
+}
+/* SHARP layer = the real glyph itself, fill ramped by --s.
+   At --s:1 it IS the settled rendering — a settle jump is
+   impossible by construction. */
+.fog-live {
+    -webkit-text-fill-color: color-mix(
+        in srgb,
+        currentColor calc(var(--s, 0) * 100%),
+        transparent
+    );
+}
+/* GHOST layer: an IN-FLOW zero-width inline-block pseudo —
+   it sits on the line's own baseline (no absolute box, no
+   line-height mismatch, no vertical offset), occupies no
+   advance, and paints the blurred twin over the glyph. */
+.fog-live::before {
+    content: attr(data-ch);
+    display: inline-block;
+    width: 0;
+    overflow: visible;
+    white-space: pre;
+    -webkit-text-fill-color: currentColor;
+    opacity: var(--g, 0);
+    filter: blur(1.2px);
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: none;
+}
+.fog-done { -webkit-text-fill-color: currentColor; }
+/* Native reveal-height clip: the streaming body's visible
+   height follows the CURSOR (low-passed, set per frame by
+   the paint loop) instead of the born layout — chunk
+   arrivals no longer slam the page upward; growth glides
+   at sweep speed. */
+.md[data-streaming="true"] {
+    position: relative;
+    /* Vertical clip ONLY — plain `hidden` also chopped the
+       codeblock mat's ±6px outdent during streaming and it
+       popped back on settle. */
+    overflow-y: clip;
+    overflow-x: visible;
+}
+/* Inline code (B): the whole chip — background, padding,
+   radius, glyphs — sweeps open behind a horizontal mask
+   driven by the cursor (--rv 0→1, soft 12px edge). At
+   --rv:1 the mask is all-pass, so the settled re-render is
+   pixel-identical: no stacking, no flip, no end pop. */
+.md :not(pre) > code:has(.fog) {
+    -webkit-mask-image: linear-gradient(
+        to right,
+        #000 calc(var(--rv, 0) * 100%),
+        transparent calc(var(--rv, 0) * 100% + 12px)
+    );
+    mask-image: linear-gradient(
+        to right,
+        #000 calc(var(--rv, 0) * 100%),
+        transparent calc(var(--rv, 0) * 100% + 12px)
+    );
+}
+.fog-ff {
+    -webkit-text-fill-color: currentColor;
+    animation: fog-in 180ms cubic-bezier(0.33, 0, 0.67, 1)
+        both;
+}
+@keyframes fog-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+/* Plan approval, native card: quinary fill, radius 12. */
+.plancard {
+    background: var(--color-fill-quinary);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.plancard .caption {
+    font-size: var(--font-body);
+    color: var(--color-text-secondary);
+}
+.plancard .content {
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: var(--font-body);
+}
+.plancard .actions { display: flex; gap: 8px; }
+.pbtn {
+    font-family: var(--font-sans);
+    font-size: var(--font-body);
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--color-fill-quaternary);
+    background: var(--color-surface);
+    color: var(--color-text);
+    cursor: pointer;
+}
+.pbtn.prominent {
+    background: var(--color-accent);
+    border-color: transparent;
+    color: #fff;
+}
+.pbtn.destructive { color: var(--color-destructive); }
+.plancard input[type="text"] {
+    font-family: var(--font-sans);
+    font-size: var(--font-body);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--color-fill-quaternary);
+    background: var(--color-surface);
+    color: var(--color-text);
+    outline: none;
+    width: 100%;
+}
