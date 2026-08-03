@@ -11,8 +11,9 @@ monorepo and is synced here. A single-document core view
 (**WKMarkdownView**) is planned as the conversation layer splits from
 the markdown engine.
 
-**Status**: macOS today (`WKConversationView` is AppKit-hosted); the
-iOS branch is pending. Requires Swift 6.
+**Status**: macOS and iOS (`WKConversationView` is
+NSViewRepresentable / UIViewRepresentable over one shared web
+engine). Requires Swift 6.
 
 ![Markdown rendering — lists, quotes, tables, code](docs/markdown.png)
 
