@@ -43,8 +43,8 @@ function mdToHtml(md) {
     return marked.parse(md, { gfm: true, breaks: false });
 }
 
-/// Streaming-tolerant repair before parsing (lobehub's
-/// recipe): remend fixes half-open fences/emphasis/links so
+/// Streaming-tolerant repair before parsing: remend fixes
+/// half-open fences/emphasis/links so
 /// nothing renders as literal syntax and then jumps.
 /// Fallback: fence auto-close only.
 function repairMarkdown(md) {
@@ -577,7 +577,7 @@ function renderRow(item) {
         + mdToHtml(item.text) + "</div>";
 }
 
-// ---- block-cached streaming body (lobehub Streamdown) --
+// ---- block-cached streaming body -----------------------
 // marked.lexer splits the repaired markdown into top-level
 // blocks; each renders into its own child div keyed by its
 // raw source. Settled blocks are NEVER touched again — only
@@ -623,8 +623,8 @@ function renderStreamingBody(body, itemId, text) {
 }
 
 // ---- streaming intake ----------------------------------
-// lobehub's engineering (remend repair, block cache, ≥48ms
-// rebuild throttle) feeding OUR display model (the
+// The intake engineering (remend repair, block cache, ≥48ms
+// rebuild throttle) feeds the display model (the
 // continuous cursor above). Chunk arrival rebuilds only
 // changed blocks with the FULL text; the cursor owns all
 // pacing. Paragraph completions fast-forward the cursor —

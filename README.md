@@ -14,6 +14,13 @@ the markdown engine.
 **Status**: macOS today (`WKConversationView` is AppKit-hosted); the
 iOS branch is pending. Requires Swift 6.
 
+![Markdown rendering — lists, quotes, tables, code](docs/markdown.png)
+
+Mid-stream frame — the reveal fog trailing the cursor, inline code
+chips sweeping open with the text:
+
+![Streaming reveal](docs/streaming.png)
+
 ## What it does
 
 - **Streaming reveal**: a continuous cursor at a fixed 40 chars/s

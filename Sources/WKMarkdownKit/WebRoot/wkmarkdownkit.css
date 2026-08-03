@@ -171,7 +171,7 @@ body { -webkit-user-select: text; }
     align-self: center;
 }
 .toolrow .tfail { color: var(--color-destructive); }
-/* Bridge discipline: non-content chrome is select-none AND
+/* Chrome discipline: non-content chrome is select-none AND
    paints no selection sweep (user-select alone still lets
    WebKit wash its line boxes). Content stays selectable —
    tool TITLES, fold LABELS, and expanded tool bodies are
@@ -237,10 +237,10 @@ body { -webkit-user-select: text; }
        during selection. Contiguous inline runs coalesce into one
        anonymous flex item, so single-line items are unchanged. */
 }
-/* Bridge's real trick is structural: React emits no
-   inter-element whitespace and every container is flex —
-   flex has NO selection-gap painting. Mirror it: pre,
-   code, and lists all go flex-column. */
+/* The real trick is structural: emit no inter-element
+   whitespace and make every container flex — flex has NO
+   selection-gap painting. So: pre, code, and lists all go
+   flex-column. */
 .codesurface pre {
     align-self: flex-start;
     display: flex;
@@ -273,7 +273,7 @@ body { -webkit-user-select: text; }
 /* BLOCK (not inline-block!) + fit-content: hugging with no
    baseline — an inline-block rides the line box's
    baseline, and the descender strip below it still paints
-   selection: the thin underline artifact. Bridge's bubble
+   selection: the thin underline artifact. The bubble
    content is a plain block for the same reason. */
 .cellsel {
     -webkit-user-select: text; user-select: text;
@@ -342,9 +342,9 @@ body { -webkit-user-select: text; }
    between selected children with full-width highlight —
    no ::selection rule on the chrome can stop it, it's the
    container painting. FLEX containers have no gap-painting
-   machinery at all (that's why Bridge's flex-col message
-   stream stays clean, and why our flex .process never
-   washed). So every multi-child container goes flex. */
+   machinery at all (which is why the flex .process column
+   never washed). So every multi-child container goes
+   flex. */
 .seg {
     display: flex;
     flex-direction: column;
@@ -365,11 +365,12 @@ body { -webkit-user-select: text; }
     position: relative;
 }
 .thought { color: var(--color-text-secondary); }
-/* Shimmer — tw-shimmer (assistant-ui) ported verbatim from the
-   package source (v0.4.12): 200px/s sweep, spread 4ch+80px, 15deg
-   tilt, 17-stop sine falloff, LIGHT mode gleam = currentColor at
-   20% alpha over the solid label (dark mode lightens instead).
-   Repeat delay pinned to 1500ms (user spec). */
+/* Shimmer — speed-based sweep: duration = active distance /
+   200px/s, so every label shimmers at the same visual speed
+   regardless of width. Spread 4ch+80px, 15deg tilt (track-
+   height·tan widening), 17-stop sine falloff; LIGHT mode
+   gleam = currentColor at 20% alpha over the solid label
+   (dark mode lightens instead). Repeat delay 1500ms. */
 .shimmer,
 .toolrow.running > .ttitle {
     --shimmer-track-height: 200px;
@@ -429,7 +430,7 @@ body { -webkit-user-select: text; }
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: tw-shimmer 1s linear 0s infinite backwards;
+    animation: wk-shimmer 1s linear 0s infinite backwards;
     animation-duration: calc(
         (var(--_duration) + var(--_repeat-delay)) * 1ms
     );
@@ -443,7 +444,7 @@ body { -webkit-user-select: text; }
         );
     }
 }
-@keyframes tw-shimmer {
+@keyframes wk-shimmer {
     from { background-position: 100% 0; }
 }
 .working {
@@ -605,7 +606,7 @@ body { -webkit-user-select: text; }
     animation: draw 0.35s ease-out forwards;
 }
 @keyframes draw { to { stroke-dashoffset: 0; } }
-/* Native-model fog, two layers like Litext: the span's own
+/* Native-model fog, two layers: the span's own
    glyph is transparent (reserves layout); inside the
    cursor window (.fog-live) a blurred GHOST pseudo
    materializes ahead (--g) and the SHARP pseudo fades in
