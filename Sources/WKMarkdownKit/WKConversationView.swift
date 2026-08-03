@@ -7,12 +7,21 @@ import WebKit
     /// selection items (Copy, Look Up…) stay. Also feeds the titlebar
     /// safe-area inset into the page.
     private final class ChromelessWebView: WKWebView {
+        private var lastSafeTop = Int.min
+
         override func layout() {
             super.layout()
-            let top = safeAreaInsets.top
+            // Layout fires every frame of a split-view/inspector
+            // animation; the inset only changes when the titlebar
+            // does. Pushing JS per frame floods the WebContent
+            // connection exactly when live-resize fences make it
+            // slowest — send only on change.
+            let top = Int(safeAreaInsets.top)
+            guard top != lastSafeTop else { return }
+            lastSafeTop = top
             evaluateJavaScript(
                 "document.documentElement.style.setProperty("
-                    + "'--safe-top','\(Int(top))px')"
+                    + "'--safe-top','\(top)px')"
             )
         }
 
@@ -33,12 +42,16 @@ import WebKit
     /// disabled at configuration instead); feeds the safe-area inset
     /// into the page from layout.
     private final class ChromelessWebView: WKWebView {
+        private var lastSafeTop = Int.min
+
         override func layoutSubviews() {
             super.layoutSubviews()
-            let top = safeAreaInsets.top
+            let top = Int(safeAreaInsets.top)
+            guard top != lastSafeTop else { return }
+            lastSafeTop = top
             evaluateJavaScript(
                 "document.documentElement.style.setProperty("
-                    + "'--safe-top','\(Int(top))px')"
+                    + "'--safe-top','\(top)px')"
             )
         }
     }
@@ -131,8 +144,16 @@ public struct WKConversationView {
         var onLoadOlder: @MainActor () -> Void = {}
         private var ready = false
         private var pending: String?
+        private var lastPayload: ConversationPayload?
 
         func push(_ payload: ConversationPayload) {
+            // SwiftUI re-runs update on every geometry tick (inspector
+            // open, window resize). Unchanged payloads must not
+            // re-encode and re-cross the process boundary — the JS
+            // fingerprint mask would drop them anyway, but only after
+            // an XPC round-trip per animation frame.
+            guard payload != lastPayload else { return }
+            lastPayload = payload
             let data = (try? JSONEncoder().encode(payload))
                 ?? Data(#"{"segments":[]}"#.utf8)
             let json = String(decoding: data, as: UTF8.self)
