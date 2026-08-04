@@ -119,6 +119,29 @@ body { -webkit-user-select: text; }
     justify-content: flex-end;
     padding-left: 48px;
 }
+/* User attachments ride ABOVE the bubble, right-aligned with it:
+   pasted images render inline (rounded, capped height), other
+   attachments as quiet chips. Column layout, everything hugging
+   the right edge — same visual line the bubble always had. */
+.userrow {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+.ubimg {
+    max-height: 220px;
+    max-width: 70%;
+    width: auto;
+    border-radius: 12px;
+    align-self: flex-end;
+}
+.ubatt {
+    background: var(--color-fill-quaternary);
+    border-radius: 8px;
+    padding: 4px 10px;
+    color: var(--color-text-secondary);
+    align-self: flex-end;
+}
 .userbubble {
     max-width: 564px;
     background: var(--color-fill-quaternary);

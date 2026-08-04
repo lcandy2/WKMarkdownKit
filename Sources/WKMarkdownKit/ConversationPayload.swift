@@ -69,6 +69,25 @@ public struct ConversationPayload: Codable, Equatable, Sendable {
         /// Secondary fact beside the label ("12 lines", "2 files").
         public var detail: String?
         public var truncated: Bool
+        /// User-message attachments. Images with data render inline;
+        /// anything else shows as a named chip.
+        public var attachments: [Attachment]?
+
+        public struct Attachment: Codable, Equatable, Sendable {
+            public var name: String
+            public var mimeType: String?
+            public var dataBase64: String?
+
+            public init(
+                name: String,
+                mimeType: String? = nil,
+                dataBase64: String? = nil
+            ) {
+                self.name = name
+                self.mimeType = mimeType
+                self.dataBase64 = dataBase64
+            }
+        }
 
         public init(
             id: String,
@@ -82,7 +101,8 @@ public struct ConversationPayload: Codable, Equatable, Sendable {
             invocation: String? = nil,
             kindLabel: String? = nil,
             detail: String? = nil,
-            truncated: Bool = false
+            truncated: Bool = false,
+            attachments: [Attachment]? = nil
         ) {
             self.id = id
             self.kind = kind
@@ -96,6 +116,7 @@ public struct ConversationPayload: Codable, Equatable, Sendable {
             self.kindLabel = kindLabel
             self.detail = detail
             self.truncated = truncated
+            self.attachments = attachments
         }
     }
 

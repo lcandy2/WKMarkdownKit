@@ -514,8 +514,21 @@ function toggleTool(itemId) {
 
 function renderRow(item) {
     if (item.kind === "user") {
+        let media = "";
+        for (const att of item.attachments || []) {
+            if (att.dataBase64
+                && (att.mimeType || "").startsWith("image/")) {
+                media += '<img class="ubimg" alt="'
+                    + esc(att.name) + '" src="data:'
+                    + esc(att.mimeType) + ";base64,"
+                    + att.dataBase64 + '">';
+            } else {
+                media += '<span class="ubatt">⎘ '
+                    + esc(att.name) + "</span>";
+            }
+        }
         return '<div class="userrow" data-urow="' + esc(item.id)
-            + '"><div class="userbubble">'
+            + '">' + media + '<div class="userbubble">'
             + '<span class="ubtext">' + esc(item.text)
             + "</span></div></div>";
     }
