@@ -516,12 +516,16 @@ function renderRow(item) {
     if (item.kind === "user") {
         let media = "";
         for (const att of item.attachments || []) {
+            // The payload crosses from transcript files — the base64
+            // field is validated to strict base64 AND escaped like its
+            // siblings before touching the DOM string.
             if (att.dataBase64
+                && /^[A-Za-z0-9+/=]+$/.test(att.dataBase64)
                 && (att.mimeType || "").startsWith("image/")) {
                 media += '<img class="ubimg" alt="'
                     + esc(att.name) + '" src="data:'
                     + esc(att.mimeType) + ";base64,"
-                    + att.dataBase64 + '">';
+                    + esc(att.dataBase64) + '">';
             } else {
                 media += '<span class="ubatt">⎘ '
                     + esc(att.name) + "</span>";
