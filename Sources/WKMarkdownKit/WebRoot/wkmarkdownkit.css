@@ -69,6 +69,23 @@ body { -webkit-user-select: text; }
        window); the native ScrollView insets automatically,
        we mirror it — LabWebView.layout feeds the inset. */
     padding-top: calc(16px + var(--safe-top, 0px));
+    padding-bottom: calc(16px + var(--safe-bottom, 0px));
+}
+/* Phone pass: without a viewport meta the page rendered at
+   ~980px virtual width scaled down — unreadable. With
+   device-width in force, narrow screens get phone
+   typography (one size up from the desktop floor) and
+   full-bleed column geometry. Width, not platform: a
+   narrow desktop window earns the same treatment. */
+@media (max-width: 540px) {
+    :root {
+        --font-body: 16px;
+        --font-tool-detail: 15px;
+        --font-code: 14px;
+    }
+    .scroll { padding-left: 12px; padding-right: 12px; }
+    .userrow { padding-left: 24px; }
+    .userbubble { max-width: 82%; }
 }
 /* Native metric: the 752pt cap INCLUDES the 16pt
    horizontal padding (padding first, then
@@ -109,6 +126,22 @@ body { -webkit-user-select: text; }
     padding: 8px 12px;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+/* New-send entrance: the just-sent bubble rises from the
+   composer's direction. The class is added post-render only
+   to rows first seen after the initial paint and only in the
+   last segment — cold replay and load-older prepends never
+   animate; segment rebuilds re-create the DOM without the
+   class, so it never replays. */
+.userrow.ub-enter .userbubble {
+    transform-origin: bottom right;
+    animation: ub-in 0.32s cubic-bezier(0.3, 1.15, 0.4, 1) both;
+}
+@keyframes ub-in {
+    from { opacity: 0; transform: translateY(14px) scale(0.96); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .userrow.ub-enter .userbubble { animation: none; }
 }
 /* Turn fold: "Worked for Xs ›", subheadline secondary. */
 .fold {

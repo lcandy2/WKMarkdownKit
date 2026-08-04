@@ -39,19 +39,28 @@ import WebKit
     }
 #else
     /// iOS twin: no browser context menu to strip (link previews are
-    /// disabled at configuration instead); feeds the safe-area inset
-    /// into the page from layout.
+    /// disabled at configuration instead); feeds BOTH safe-area
+    /// insets into the page from layout — the view extends under the
+    /// navigation bar and composer, and the page pads its scroll
+    /// content so text glides behind their blur instead of being
+    /// clipped above them.
     private final class ChromelessWebView: WKWebView {
         private var lastSafeTop = Int.min
+        private var lastSafeBottom = Int.min
 
         override func layoutSubviews() {
             super.layoutSubviews()
             let top = Int(safeAreaInsets.top)
-            guard top != lastSafeTop else { return }
+            let bottom = Int(safeAreaInsets.bottom)
+            guard top != lastSafeTop || bottom != lastSafeBottom
+            else { return }
             lastSafeTop = top
+            lastSafeBottom = bottom
             evaluateJavaScript(
                 "document.documentElement.style.setProperty("
-                    + "'--safe-top','\(top)px')"
+                    + "'--safe-top','\(top)px');"
+                    + "document.documentElement.style.setProperty("
+                    + "'--safe-bottom','\(bottom)px')"
             )
         }
     }

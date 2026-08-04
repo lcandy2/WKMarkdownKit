@@ -486,6 +486,9 @@ function fogBlock(container) {
 // ---- item / segment rendering --------------------------
 const expandedTurns = new Map();   // segment id -> bool
 const expandedTools = new Map();   // tool item id -> bool
+// New-send detection for the bubble entrance animation.
+const seenUserRows = new Set();
+let hadFirstRender = false;
 
 // Titles and fold labels are selectable, and their rows are
 // click targets: a drag that just made a selection also fires
@@ -511,7 +514,8 @@ function toggleTool(itemId) {
 
 function renderRow(item) {
     if (item.kind === "user") {
-        return '<div class="userrow"><div class="userbubble">'
+        return '<div class="userrow" data-urow="' + esc(item.id)
+            + '"><div class="userbubble">'
             + '<span class="ubtext">' + esc(item.text)
             + "</span></div></div>";
     }
@@ -977,6 +981,30 @@ window.cog = {
         ]) {
             if (!live.has(el.id)) { el.remove(); }
         }
+
+        // New-send bubble entrance: only rows first seen AFTER the
+        // initial render (cold replay stays still) and only in the
+        // LAST segment (load-older prepends stay still).
+        const lastSeg =
+            payload.segments[payload.segments.length - 1];
+        if (hadFirstRender && lastSeg) {
+            for (const row of lastSeg.user) {
+                if (seenUserRows.has(row.id)) { continue; }
+                const el = document.querySelector(
+                    '[data-urow="' + CSS.escape(row.id) + '"]'
+                );
+                if (el) {
+                    el.classList.add("ub-enter");
+                    scrollToBottom(true);
+                }
+            }
+        }
+        for (const seg of payload.segments) {
+            for (const row of seg.user) {
+                seenUserRows.add(row.id);
+            }
+        }
+        hadFirstRender = true;
 
         // Working… row, native rule.
         let workingEl =
